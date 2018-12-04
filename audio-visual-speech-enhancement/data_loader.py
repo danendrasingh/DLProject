@@ -26,6 +26,10 @@ def return_data(mode):
 	    	# return_dict[i]['mixed'] = data[i][5]
 	    	# return_dict[i]['speech'] = data[i][6]
 	    	contents.append(return_dict)
+	pickle_out = open("extracted_new.pickle","wb")
+	pickle.dump(contents, pickle_out)
+	pickle_out.close()
+	pdb.set_trace()
 	trainSize = int(0.8*len(contents))
 	contents = np.array(contents)
 	if mode is 'train':	
