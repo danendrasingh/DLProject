@@ -36,10 +36,10 @@ def train(args):
 	validation_preprocessed_blob_paths = [assets.get_preprocessed_blob_path(d) for d in args.validation_data_names]
 
 	train_samples = load_preprocessed_blobs(train_preprocessed_blob_paths)
-	train_video_samples, train_mixed_spectrograms, train_speech_spectrograms = make_sample_set(train_samples)
+	train_video_samples, train_mixed_spectrograms, train_speech_spectrograms, train_noisy_phase = make_sample_set(train_samples)
 
 	validation_samples = load_preprocessed_blobs(validation_preprocessed_blob_paths)
-	validation_video_samples, validation_mixed_spectrograms, validation_speech_spectrograms = make_sample_set(validation_samples)
+	validation_video_samples, validation_mixed_spectrograms, validation_speech_spectrograms, validation_noisy_phase = make_sample_set(validation_samples)
 
 	video_normalizer = data_processor.VideoNormalizer(train_video_samples)
 	video_normalizer.normalize(train_video_samples)
@@ -251,15 +251,19 @@ def make_sample_set(samples, max_samples=None):
 	mixed_spectrograms = np.concatenate([sample.mixed_spectrograms for sample in samples], axis=0)
 	speech_spectrograms = np.concatenate([sample.speech_spectrograms for sample in samples], axis=0)
 
+	noisy_phase = np.concatenate([sample.noise_phase for sample in samples], axis=0)
+
 	permutation = np.random.permutation(video_samples.shape[0])
 	video_samples = video_samples[permutation]
 	mixed_spectrograms = mixed_spectrograms[permutation]
 	speech_spectrograms = speech_spectrograms[permutation]
+	noisy_phase = noisy_phase[permutation]
 
 	return (
 		video_samples,
 		mixed_spectrograms,
-		speech_spectrograms
+		speech_spectrograms,
+		noisy_phase
 	)
 
 
