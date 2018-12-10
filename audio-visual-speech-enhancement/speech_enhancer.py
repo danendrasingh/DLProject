@@ -72,11 +72,12 @@ def predict(args):
 			print("predicting (%s, %s)..." % (sample.video_file_path, sample.noise_file_path))
 
 			video_normalizer.normalize(sample.video_samples)
+			zeros = np.ones_like(sample.video_samples)
 
-			loss = network.evaluate(sample.mixed_spectrograms, sample.video_samples, sample.speech_spectrograms)
+			loss = network.evaluate(sample.mixed_spectrograms, zeros, sample.speech_spectrograms)
 			print("loss: %f" % loss)
 
-			predicted_speech_spectrograms = network.predict(sample.mixed_spectrograms, sample.video_samples)
+			predicted_speech_spectrograms = network.predict(sample.mixed_spectrograms, zeros)
 
 			predicted_speech_signal = data_processor.reconstruct_speech_signal(
 				sample.mixed_signal, predicted_speech_spectrograms, sample.video_frame_rate

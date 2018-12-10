@@ -49,12 +49,19 @@ def preprocess_audio_signal(audio_signal, slice_duration_ms, n_video_slices, vid
 	spectrogram_samples_per_slice = int(samples_per_slice / hop_length)
 	n_slices = int(mel_spectrogram.shape[1] / spectrogram_samples_per_slice)
 
+	n_phase = int(phase.shape[1]/spectrogram_samples_per_slice)
+
 	slices = [
 		mel_spectrogram[:, (i * spectrogram_samples_per_slice):((i + 1) * spectrogram_samples_per_slice)]
 		for i in range(n_slices)
 	]
 
-	return np.stack(slices)
+	phaseSlices = [
+		phase[:, (i * spectrogram_samples_per_slice):((i+1) * spectrogram_samples_per_slice)]
+		for i in range(n_phase)
+	]
+
+	return np.stack(slices), np.stack(phaseSlices)
 
 
 def reconstruct_speech_signal(mixed_signal, speech_spectrograms, video_frame_rate):
@@ -132,11 +139,11 @@ def preprocess_audio_pair(speech_file_path, noise_file_path, slice_duration_ms, 
 
 	mixed_signal = AudioMixer.mix([speech_signal, noise_signal], mixing_weights=[1, 1])
 
-	mixed_spectrograms = preprocess_audio_signal(mixed_signal, slice_duration_ms, n_video_slices, video_frame_rate)
-	speech_spectrograms = preprocess_audio_signal(speech_signal, slice_duration_ms, n_video_slices, video_frame_rate)
-	noise_spectrograms = preprocess_audio_signal(noise_signal, slice_duration_ms, n_video_slices, video_frame_rate)
+	mixed_spectrograms, mixed_phase = preprocess_audio_signal(mixed_signal, slice_duration_ms, n_video_slices, video_frame_rate)
+	speech_spectrograms, _ = preprocess_audio_signal(speech_signal, slice_duration_ms, n_video_slices, video_frame_rate)
+	noise_spectrograms, _ = preprocess_audio_signal(noise_signal, slice_duration_ms, n_video_slices, video_frame_rate)
 
-	return mixed_spectrograms, speech_spectrograms, noise_spectrograms, mixed_signal
+	return mixed_spectrograms, speech_spectrograms, noise_spectrograms, mixed_signal, mixed_phase
 
 
 Sample = namedtuple('Sample', [
@@ -148,6 +155,7 @@ Sample = namedtuple('Sample', [
 	'mixed_spectrograms',
 	'speech_spectrograms',
 	'noise_spectrograms',
+	'noise_phase',
 	'mixed_signal',
 	'video_frame_rate'
 ])
@@ -157,7 +165,7 @@ def preprocess_sample(speech_entry, noise_file_path, slice_duration_ms=200):
 	print("preprocessing sample: %s, %s, %s..." % (speech_entry.video_path, speech_entry.audio_path, noise_file_path))
 
 	video_samples, video_frame_rate = preprocess_video_sample(speech_entry.video_path, slice_duration_ms)
-	mixed_spectrograms, speech_spectrograms, noise_spectrograms, mixed_signal = preprocess_audio_pair(
+	mixed_spectrograms, speech_spectrograms, noise_spectrograms, mixed_signal, mixed_phase = preprocess_audio_pair(
 		speech_entry.audio_path, noise_file_path, slice_duration_ms, video_samples.shape[0], video_frame_rate
 	)
 
@@ -172,7 +180,8 @@ def preprocess_sample(speech_entry, noise_file_path, slice_duration_ms=200):
 		mixed_spectrograms=mixed_spectrograms[:n_slices],
 		speech_spectrograms=speech_spectrograms[:n_slices],
 		noise_spectrograms=noise_spectrograms[:n_slices],
-		mixed_signal=mixed_signal,
+		noise_phase = mixed_phase[:n_slices],
+		mixed_signal= mixed_signal,
 		video_frame_rate=video_frame_rate
 	)
 
